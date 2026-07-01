@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Find Your Four</title>
+<title>Connections</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -94,7 +94,7 @@
     width:10px; height:10px; border-radius:50%;
     border:2px solid var(--tile-border);
     background:transparent;
-    transition:background .3s ease, border-color .3s ease, transform .3s ease;
+    transition:background .4s ease, border-color .4s ease, transform .4s cubic-bezier(0.25, 0.8, 0.25, 1);
   }
   .dot.yellow{ border-color:var(--yellow-bg); }
   .dot.blue{ border-color:var(--blue-bg); }
@@ -106,13 +106,32 @@
   .dot.filled.purple{ background:var(--purple-bg); }
   .dot.filled{ transform:scale(1.15); }
 
-  .solved-list{ margin-top:20px; display:flex; flex-direction:column; gap:10px; }
+  /* Layout fix to prevent height snapping */
+  .game-area {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .solved-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .solved-list:empty {
+    display: none;
+  }
 
   .solved-bar{
+    min-height: 82px; /* Matches exact tile height to prevent layout jumps */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     border-radius:var(--radius-md);
-    padding:12px 14px;
     text-align:center;
-    animation:solvedIn .6s cubic-bezier(.34,1.56,.64,1) both, barGlow .8s ease-out;
+    animation:fuseBar .5s ease-out both, barGlow 1.2s ease-out;
   }
   .solved-bar.yellow{ background:var(--yellow-bg); color:var(--yellow-text); }
   .solved-bar.blue{ background:var(--blue-bg); color:var(--blue-text); }
@@ -138,10 +157,10 @@
   }
 
   .board{
-    margin-top:20px;
     display:grid;
     grid-template-columns:repeat(4, 1fr);
     gap:10px;
+    position: relative;
   }
 
   .tile{
@@ -162,37 +181,53 @@
     text-align:center;
     padding:8px 6px;
     cursor:pointer;
-    transition:transform .24s cubic-bezier(.34,1.56,.64,1), box-shadow .24s ease, background-color .32s ease, color .28s ease, border-color .28s ease, opacity .22s ease;
     opacity:1;
     transform:scale(1);
     -webkit-tap-highlight-color:transparent;
+    
+    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), 
+                box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), 
+                background-color 0.4s ease, 
+                color 0.4s ease, 
+                border-color 0.4s ease, 
+                opacity 0.3s ease;
   }
+  
   .board.reshuffling .tile{ opacity:0; transform:scale(.95); }
 
-  .tile:hover{ transform:translateY(-2px); box-shadow:0 6px 14px rgba(43,35,32,0.08); }
+  .tile:hover:not(.selected){ 
+    transform:translateY(-2px) scale(1.02); 
+    box-shadow:0 6px 16px rgba(43,35,32,0.06); 
+  }
+  
   .tile:focus-visible{ outline:2px solid var(--blush-deep); outline-offset:2px; }
 
   .tile.selected{
     background:var(--ink);
     color:#fff;
-    border-color:var(--ink);
-    transform:scale(1.045);
-    box-shadow:0 8px 18px rgba(43,35,32,.16);
-  }
-
-  .tile.correct-snap{
-    transition:transform .55s cubic-bezier(.34,1.56,.64,1), background-color .5s ease, color .42s ease, border-color .3s ease;
-    transform:translate(var(--tx,0px), var(--ty,0px)) scale(1.06);
     border-color:transparent;
-    animation:lockGlow .65s ease-out;
+    box-shadow: 0 12px 24px rgba(43,35,32,0.18), 0 0 0 1.5px rgba(43,35,32,0.4);
+    animation: floatSelected 3s ease-in-out infinite;
+    z-index: 2;
   }
-  .tile.correct-snap.yellow{ background:var(--yellow-bg); color:var(--yellow-text); }
-  .tile.correct-snap.blue{ background:var(--blue-bg); color:var(--blue-text); }
-  .tile.correct-snap.green{ background:var(--green-bg); color:var(--green-text); }
-  .tile.correct-snap.purple{ background:var(--purple-bg); color:var(--purple-text); }
 
-  .tile.shake{ animation:shake .42s ease-in-out; }
+  /* Movement to Top Row Style - Ultra Smooth */
+  .tile.move-to-top {
+    z-index: 10;
+    transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+                background-color 0.6s ease,
+                color 0.6s ease,
+                border-color 0.6s ease;
+    transform: translate(var(--tx, 0), var(--ty, 0)) scale(1);
+    border-color: transparent;
+    animation: none; /* Stops the floating seamlessly */
+  }
+  .tile.move-to-top.yellow{ background:var(--yellow-bg); color:var(--yellow-text); }
+  .tile.move-to-top.blue{ background:var(--blue-bg); color:var(--blue-text); }
+  .tile.move-to-top.green{ background:var(--green-bg); color:var(--green-text); }
+  .tile.move-to-top.purple{ background:var(--purple-bg); color:var(--purple-text); }
 
+  .tile.shake{ animation: softShake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
   .tile.hint-pulse{ animation:hintPulse 1.3s ease-in-out 2; }
 
   .toast{
@@ -203,7 +238,7 @@
     color:var(--blush-deep);
     margin:10px 0 0;
     opacity:0;
-    transition:opacity .25s ease;
+    transition:opacity .35s ease;
   }
   .toast.show{ opacity:1; }
 
@@ -226,16 +261,11 @@
     background:#fff;
     color:var(--ink);
     cursor:pointer;
-    transition:transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease, opacity .2s ease;
+    transition:transform .3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow .3s ease, opacity .3s ease;
   }
-  .controls button:hover:not(:disabled){ transform:translateY(-1px); box-shadow:0 6px 14px rgba(43,35,32,0.08); }
-  .controls button:disabled{ opacity:.4; cursor:not-allowed; }
-
-  .controls button.primary{
-    background:var(--ink);
-    color:#fff;
-    border-color:var(--ink);
-  }
+  .controls button:hover:not(:disabled){ transform:translateY(-1px) scale(1.02); box-shadow:0 6px 14px rgba(43,35,32,0.08); }
+  .controls button:disabled{ opacity:.4; cursor:not-allowed; transform:translateY(0) scale(1); box-shadow:none; }
+  .controls button.primary{ background:var(--ink); color:#fff; border-color:var(--ink); }
 
   /* ---------- Reveal overlay ---------- */
 
@@ -272,58 +302,113 @@
     animation:crossfade 9s ease-in-out infinite alternate;
   }
 
-  .reveal-inner{ position:relative; text-align:center; padding:0 24px; }
+  .reveal-inner{ 
+    position:relative; 
+    text-align:center; 
+    padding:0 24px; 
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .reveal-text-container {
+    display: grid;
+    place-items: center;
+    min-height: 120px;
+  }
 
   .reveal-line{
+    grid-area: 1 / 1;
     font-family:var(--font-display);
     opacity:0;
-    transform:translateY(14px);
-    filter:blur(6px);
+    transform:translateY(18px);
+    filter:blur(8px);
     transition:opacity 1s ease, transform 1s ease, filter 1s ease;
+    margin:0;
+    text-align:center;
   }
-  .reveal-line.show{ opacity:1; transform:translateY(0); filter:blur(0); }
+  
+  .reveal-line.show{ 
+    opacity:1; 
+    transform:translateY(0); 
+    filter:blur(0); 
+  }
+  
+  .reveal-line.fade-out {
+    opacity:0 !important;
+    transform:translateY(-18px) !important;
+    filter:blur(8px) !important;
+  }
 
-  .line1{
-    font-size:clamp(1.6rem, 6vw, 2.9rem);
+  .l-text {
+    font-size:clamp(1.5rem, 5.5vw, 2.5rem);
     font-weight:600;
     color:var(--ink);
-    margin:0;
-  }
-  .line2{
-    font-size:clamp(1.1rem, 4vw, 1.6rem);
-    font-style:italic;
-    font-weight:500;
-    color:var(--blush-deep);
-    margin:12px 0 0;
+    line-height: 1.2;
   }
 
   .reveal-heart{
-    margin-top:26px;
-    font-size:1.6rem;
+    font-size:1.8rem;
     color:var(--blush-deep);
     opacity:0;
     transform:scale(.6);
     transition:opacity .8s ease, transform .8s ease;
+    margin-bottom: 24px;
   }
   .reveal-heart.show{
     opacity:1; transform:scale(1);
     animation:heartbeat 1.6s ease-in-out infinite;
   }
 
+  .reveal-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 1s ease, transform 1s ease;
+    pointer-events: none;
+  }
+  .reveal-buttons.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .btn-confetti {
+    background: var(--ink);
+    color: #fff;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 999px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(43,35,32,0.15);
+    transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.2s ease;
+  }
+  .btn-confetti:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 12px 24px rgba(43,35,32,0.25);
+  }
+  .btn-confetti:active {
+    transform: translateY(0) scale(0.98);
+  }
+
   .again{
-    display:block;
-    margin:34px auto 0;
     background:none;
     border:none;
-    font-size:.75rem;
+    font-size:.85rem;
     color:var(--ink-soft);
     text-decoration:underline;
     cursor:pointer;
-    opacity:0;
-    transition:opacity .8s ease;
+    transition:color 0.2s ease;
+    font-family: var(--font-body);
   }
-  .again.show{ opacity:.55; }
-  .again:hover{ opacity:1; }
+  .again:hover{ color:var(--ink); }
 
   .fx-layer{ position:absolute; inset:0; pointer-events:none; overflow:hidden; }
 
@@ -345,29 +430,30 @@
     animation-fill-mode:forwards;
   }
 
-  @keyframes solvedIn{
-    0%{ opacity:0; transform:translateY(-10px) scale(.95); }
-    100%{ opacity:1; transform:translateY(0) scale(1); }
+  @keyframes floatSelected {
+    0%, 100% { transform: scale(1.05) translateY(0); }
+    50% { transform: scale(1.05) translateY(-3px); }
+  }
+
+  @keyframes softShake {
+    0%, 100% { transform: translateX(0) scale(1.05); } 
+    15% { transform: translateX(-4px) scale(1.05); }
+    30% { transform: translateX(4px) scale(1.05); }
+    45% { transform: translateX(-3px) scale(1.05); }
+    60% { transform: translateX(3px) scale(1.05); }
+    75% { transform: translateX(-2px) scale(1.05); }
+  }
+
+  /* Smooth fusion effect so the bar doesn't snap */
+  @keyframes fuseBar{
+    0% { opacity: 0; transform: scale(0.98); }
+    100% { opacity: 1; transform: scale(1); }
   }
 
   @keyframes barGlow{
     0%{ box-shadow:0 0 0 0 var(--bar-glow, rgba(0,0,0,0)); }
-    45%{ box-shadow:0 0 16px 4px var(--bar-glow, rgba(0,0,0,0)); }
+    45%{ box-shadow:0 0 18px 5px var(--bar-glow, rgba(0,0,0,0)); }
     100%{ box-shadow:0 0 0 0 rgba(0,0,0,0); }
-  }
-
-  @keyframes lockGlow{
-    0%{ box-shadow:0 0 0 0 var(--glow, rgba(0,0,0,0)); }
-    40%{ box-shadow:0 0 0 9px var(--glow, rgba(0,0,0,0)); }
-    100%{ box-shadow:0 0 0 0 rgba(0,0,0,0); }
-  }
-
-  @keyframes shake{
-    0%,100%{ transform:translateX(0); }
-    20%{ transform:translateX(-3px); }
-    40%{ transform:translateX(3px); }
-    60%{ transform:translateX(-2px); }
-    80%{ transform:translateX(2px); }
   }
 
   @keyframes hintPulse{
@@ -403,6 +489,7 @@
     .board{ gap:7px; }
     .tile{ min-height:68px; padding:6px 4px; }
     .controls button{ padding:9px 14px; font-size:.78rem; }
+    .solved-bar{ min-height: 68px; }
   }
 
   @media (prefers-reduced-motion: reduce){
@@ -416,13 +503,14 @@
     <div class="card" id="gameCard">
       <header>
         <p class="eyebrow">A little puzzle</p>
-        <h1>Find Your Four</h1>
+        <h1>Connections</h1>
         <div class="progress-dots" id="progressDots"></div>
       </header>
 
-      <div class="solved-list" id="solvedList"></div>
-
-      <div class="board" id="board"></div>
+      <div class="game-area">
+        <div class="solved-list" id="solvedList"></div>
+        <div class="board" id="board"></div>
+      </div>
 
       <p class="toast" id="toast"></p>
 
@@ -437,12 +525,22 @@
 
   <div class="reveal" id="reveal">
     <div class="reveal-bg"><div class="g1"></div><div class="g2"></div></div>
+    
     <div class="reveal-inner">
-      <p class="reveal-line line1" id="line1">Happy Two Year Anniversary</p>
-      <p class="reveal-line line2" id="line2">I love you</p>
+      <div class="reveal-text-container">
+        <p class="reveal-line l-text" id="line1">To my favorite connection,</p>
+        <p class="reveal-line l-text" id="line2">Happy two year anniversary!</p>
+        <p class="reveal-line l-text" id="line3">I love you</p>
+      </div>
+      
       <div class="reveal-heart" id="revealHeart">&#9829;</div>
-      <button type="button" class="again" id="againBtn">Play again &#8635;</button>
+      
+      <div class="reveal-buttons" id="revealButtons">
+        <button type="button" class="btn-confetti" id="confettiBtn">🎉 More Confetti!</button>
+        <button type="button" class="again" id="againBtn">Play again &#8635;</button>
+      </div>
     </div>
+    
     <div class="fx-layer" id="fxLayer"></div>
   </div>
 
@@ -463,11 +561,11 @@
   };
 
   // ---------- State ----------
-  let tiles = [];        // { word, cat } currently unsolved, in display order
-  let selected = [];      // words currently selected
-  let solvedOrder = [];    // category indices, in the order the player solved them
+  let tiles = [];        
+  let selected = [];      
+  let solvedOrder = [];    
   let hintRotation = 0;
-  let busy = false;       // blocks input during transition animations
+  let busy = false;       
   let heartInterval = null;
 
   // ---------- Helpers ----------
@@ -495,19 +593,33 @@
     ).join('');
   }
 
-  function renderBoard(){
+  function renderBoard(forceRebuild = false){
     const board = document.getElementById('board');
-    board.innerHTML = '';
-    tiles.forEach(t=>{
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'tile' + (selected.includes(t.word) ? ' selected' : '');
-      btn.textContent = t.word;
-      btn.dataset.word = t.word;
-      btn.setAttribute('aria-pressed', selected.includes(t.word) ? 'true' : 'false');
-      btn.addEventListener('click', ()=> onTileClick(t.word));
-      board.appendChild(btn);
-    });
+    
+    // Only rebuild the HTML if necessary, otherwise just flip classes. This prevents animation resets.
+    if(forceRebuild || board.children.length !== tiles.length) {
+      board.innerHTML = '';
+      tiles.forEach(t=>{
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'tile' + (selected.includes(t.word) ? ' selected' : '');
+        btn.textContent = t.word;
+        btn.dataset.word = t.word;
+        btn.setAttribute('aria-pressed', selected.includes(t.word) ? 'true' : 'false');
+        btn.addEventListener('click', ()=> onTileClick(t.word));
+        board.appendChild(btn);
+      });
+    } else {
+      Array.from(board.children).forEach(btn => {
+        const isSel = selected.includes(btn.dataset.word);
+        if(isSel) {
+            btn.classList.add('selected');
+        } else {
+            btn.classList.remove('selected', 'shake', 'move-to-top');
+        }
+        btn.setAttribute('aria-pressed', isSel ? 'true' : 'false');
+      });
+    }
   }
 
   function renderSolvedBar(catIdx){
@@ -524,7 +636,7 @@
     document.getElementById('deselectBtn').disabled = selected.length === 0;
   }
 
-  function showToast(msg, duration=1400){
+  function showToast(msg, duration=1800){
     const toast = document.getElementById('toast');
     toast.textContent = msg;
     toast.classList.add('show');
@@ -536,22 +648,21 @@
     return Array.from(document.querySelectorAll('.tile')).find(b => b.dataset.word === word);
   }
 
-  function snapTogether(words, catIdx){
+  function moveToTopRow(words, catIdx){
     const els = words.map(findTileEl).filter(Boolean);
-    const rects = els.map(el => el.getBoundingClientRect());
-    const cx = rects.reduce((s,r)=> s + r.left + r.width/2, 0) / rects.length;
-    const cy = rects.reduce((s,r)=> s + r.top + r.height/2, 0) / rects.length;
+    const boardEls = Array.from(document.querySelectorAll('.tile'));
+    
+    const targetRects = boardEls.slice(0, 4).map(el => el.getBoundingClientRect());
     const catKey = CATEGORIES[catIdx].key;
 
-    els.forEach((el,i)=>{
-      const r = rects[i];
-      const ex = r.left + r.width/2, ey = r.top + r.height/2;
-      const dx = (cx - ex) * 0.22;
-      const dy = (cy - ey) * 0.22;
-      el.style.setProperty('--tx', dx + 'px');
-      el.style.setProperty('--ty', dy + 'px');
-      el.style.setProperty('--glow', GLOW[catKey]);
-      el.classList.add('correct-snap', catKey);
+    els.forEach((el, i) => {
+      const currentRect = el.getBoundingClientRect();
+      const tx = targetRects[i].left - currentRect.left;
+      const ty = targetRects[i].top - currentRect.top;
+
+      el.style.setProperty('--tx', tx + 'px');
+      el.style.setProperty('--ty', ty + 'px');
+      el.classList.add('move-to-top', catKey);
     });
   }
 
@@ -581,7 +692,7 @@
     shuffleArray(tiles);
     const board = document.getElementById('board');
     board.classList.add('reshuffling');
-    renderBoard();
+    renderBoard(true); // Must force rebuild to swap physical orders
     requestAnimationFrame(()=> requestAnimationFrame(()=> board.classList.remove('reshuffling')));
   }
 
@@ -610,8 +721,10 @@
 
     if(allSame){
       busy = true;
-      snapTogether(selected, cats[0]);
-      setTimeout(()=> lockCategory(cats[0]), 620);
+      moveToTopRow(selected, cats[0]);
+      
+      // Waits for the exact moment the 0.8s CSS movement animation ends to prevent snaps
+      setTimeout(()=> lockCategory(cats[0]), 800); 
     } else {
       const counts = {};
       cats.forEach(c=> counts[c] = (counts[c]||0) + 1);
@@ -620,7 +733,12 @@
 
       selected.forEach(w=>{
         const el = findTileEl(w);
-        if(el) el.classList.add('shake');
+        if(el) {
+           el.style.animation = 'none';
+           void el.offsetWidth;
+           el.style.animation = '';
+           el.classList.add('shake');
+        }
       });
       busy = true;
       setTimeout(()=>{
@@ -628,7 +746,7 @@
         busy = false;
         renderBoard();
         updateControls();
-      }, 460);
+      }, 550);
     }
   }
 
@@ -638,7 +756,7 @@
     solvedOrder.push(catIdx);
     renderSolvedBar(catIdx);
     renderDots();
-    renderBoard();
+    renderBoard(true); // Removes the old tiles entirely
     updateControls();
     busy = false;
     if(solvedOrder.length === 4){
@@ -652,10 +770,30 @@
     reveal.classList.add('active');
     spawnConfetti();
     startHearts();
-    setTimeout(()=> document.getElementById('line1').classList.add('show'), 350);
-    setTimeout(()=> document.getElementById('line2').classList.add('show'), 1250);
-    setTimeout(()=> document.getElementById('revealHeart').classList.add('show'), 2050);
-    setTimeout(()=> document.getElementById('againBtn').classList.add('show'), 2850);
+
+    const l1 = document.getElementById('line1');
+    const l2 = document.getElementById('line2');
+    const l3 = document.getElementById('line3');
+    const heart = document.getElementById('revealHeart');
+    const btns = document.getElementById('revealButtons');
+
+    // Sequence 1
+    setTimeout(() => l1.classList.add('show'), 500);
+    setTimeout(() => l1.classList.add('fade-out'), 3000);
+
+    // Sequence 2
+    setTimeout(() => l2.classList.add('show'), 3800);
+    setTimeout(() => l2.classList.add('fade-out'), 6300);
+
+    // Sequence 3
+    setTimeout(() => l3.classList.add('show'), 7100);
+    setTimeout(() => l3.classList.add('fade-out'), 9600);
+
+    // Final UI Reveal
+    setTimeout(() => {
+      heart.classList.add('show');
+      btns.classList.add('show');
+    }, 10400);
   }
 
   function spawnConfetti(){
@@ -706,21 +844,27 @@
     clearInterval(heartInterval);
     document.getElementById('solvedList').innerHTML = '';
     document.getElementById('reveal').classList.remove('active');
-    document.querySelectorAll('.reveal-line').forEach(el=> el.classList.remove('show'));
+    
+    // Reset Reveal State
+    document.querySelectorAll('.reveal-line').forEach(el => {
+      el.classList.remove('show', 'fade-out');
+    });
     document.getElementById('revealHeart').classList.remove('show');
-    document.getElementById('againBtn').classList.remove('show');
+    document.getElementById('revealButtons').classList.remove('show');
     document.getElementById('fxLayer').innerHTML = '';
 
     renderDots();
-    renderBoard();
+    renderBoard(true);
     updateControls();
   }
 
+  // Event Listeners
   document.getElementById('submitBtn').addEventListener('click', onSubmit);
   document.getElementById('shuffleBtn').addEventListener('click', onShuffle);
   document.getElementById('hintBtn').addEventListener('click', onHint);
   document.getElementById('deselectBtn').addEventListener('click', onDeselect);
   document.getElementById('againBtn').addEventListener('click', initGame);
+  document.getElementById('confettiBtn').addEventListener('click', spawnConfetti);
 
   initGame();
 </script>
